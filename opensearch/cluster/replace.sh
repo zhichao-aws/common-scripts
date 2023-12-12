@@ -1,0 +1,3 @@
+scp -i /Users/zhichaog/.ssh/zhichao-tokyo.pem opensearch.yml ubuntu@ec2-3-112-214-67.ap-northeast-1.compute.amazonaws.com:/home/ubuntu/2.12.0-ARCHIVE/config/opensearch.yml 
+scp -i /Users/zhichaog/.ssh/zhichao-tokyo.pem opensearch.yml ubuntu@ec2-175-41-205-113.ap-northeast-1.compute.amazonaws.com:/home/ubuntu/2.12.0-ARCHIVE/config/opensearch.yml
+scp -i /Users/zhichaog/.ssh/zhichao-tokyo.pem opensearch.yml ubuntu@ec2-13-231-144-229.ap-northeast-1.compute.amazonaws.com:/home/ubuntu/2.12.0-ARCHIVE/config/opensearch.yml
