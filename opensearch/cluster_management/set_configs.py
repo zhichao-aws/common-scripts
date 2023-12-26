@@ -2,7 +2,7 @@ import os
 import boto3
 import subprocess
 
-from utils import load_json,get_instances_info
+from utils import load_json,get_instances_info, run_commands_on_dns
 
 def get_memory(client,instance_type):
     memory = client.describe_instance_types(InstanceTypes=[instance_type])["InstanceTypes"][0]["MemoryInfo"]["SizeInMiB"]
@@ -34,7 +34,7 @@ def get_yml_file(manager_ip,node_count,configs):
             f.write(content)
     return target_path
 
-def set_configs(configs):
+async def set_configs(configs):
     ids = load_json("ids",configs)
     client = boto3.client("ec2", region_name=configs["RegionInfo"]["RegionName"])
     manager_ip = get_instances_info(list(ids.values())[0],configs)["PrivateIpAddress"][0]
@@ -50,10 +50,9 @@ def set_configs(configs):
         
         info = get_instances_info(instance_ids,configs)
         print(info)
-        for dns in info["PublicDnsName"]:
-            command = f"""
+        
+        commands = [f"""
                     scp -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} {yml_fp} ubuntu@{dns}:/home/ubuntu/{configs["cluster_node_dir"]}/config/opensearch.yml
                     scp -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} {jvm_fp} ubuntu@{dns}:/home/ubuntu/{configs["cluster_node_dir"]}/config/jvm.options
-                    """
-            res = subprocess.run(command, shell=True)
-            print(f"finished for {dns}.",res)
+                    """ for dns in info["PublicDnsName"]]
+        await run_commands_on_dns(commands,info["PublicDnsName"])

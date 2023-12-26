@@ -1,9 +1,9 @@
 import boto3
 import subprocess
 
-from utils import load_json,get_instances_info
+from utils import load_json,get_instances_info, run_commands_on_dns
 
-def start_cluster(configs):
+async def start_cluster(configs):
     ids = load_json("ids",configs)
     endpoints = []
     
@@ -11,17 +11,23 @@ def start_cluster(configs):
         info = get_instances_info(instance_ids,configs)
         print(info)
         endpoints += [f"https://{dns}:9200" for dns in info["PublicDnsName"]]
-        for dns in info["PublicDnsName"]:
-            command = f"""
-            ssh -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} ubuntu@{dns} << EOF
+        commands = [f"""
+            ssh -o StrictHostKeyChecking=no -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} ubuntu@{dns} << EOF
             cd /home/ubuntu/{configs["cluster_node_dir"]}
-            pgrep -f opensearch | xargs kill -9
-            sleep 10
-            ls
+            if pgrep -f "opensearch" > /dev/null
+            then
+                echo "Process found. Attempting to kill..."
+                # Kill the process
+                pgrep -f "opensearch" | xargs kill -9
+                echo "Process killed."
+                sleep 10
+            else
+                echo "Process not found. Continuing..."
+            fi
             nohup sh opensearch-tar-install.sh > nohup.log 2>&1 &
-            pgrep opensearch
-            """
-            res = subprocess.run(command, shell=True)
-            print(f"finished for {dns}.",res)
+            sleep 2
+            pgrep -f opensearch
+            """ for dns in info["PublicDnsName"]]
+        await run_commands_on_dns(commands,info["PublicDnsName"])
             
     print(endpoints)
