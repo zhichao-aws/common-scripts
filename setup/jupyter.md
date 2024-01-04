@@ -5,6 +5,9 @@ jupyter notebook --NotebookApp.base_url=/jupyter/
 
 config:
 ```
+jupyter notebook --generate-config
+```
+```
 c = get_config()  #noqa
 
 c.NotebookApp.allow_origin = '*'

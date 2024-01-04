@@ -44,7 +44,7 @@ async def set_configs(configs):
     yml_fp = get_yml_file(f"ip-{manager_ip}",node_count,configs)
 
     for instance_type, instance_ids in ids.items():
-        max_mem = configs.get("max_mem",1e6)
+        max_mem = configs.get("max_mem",32)
         memory = get_memory(client,instance_type)
         jvm_fp = get_jvm_file(min(max_mem,memory),configs)
         
