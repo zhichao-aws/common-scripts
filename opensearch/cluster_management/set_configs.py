@@ -20,8 +20,8 @@ def get_jvm_file(new_memory, configs):
             tmp_jvm.write(jvm_options)
     return target_path
 
-def get_yml_file(manager_ip,node_count,configs):
-    target_path = os.path.join(configs["store_dir"],configs["identifier"]+".opensearch.yml")
+def get_yml_file(manager_ip,node_count,configs, instance_type, roles):
+    target_path = os.path.join(configs["store_dir"],configs["identifier"]+f".{instance_type}.opensearch.yml")
     with open('opensearch.yml', 'r') as yml_file:
         content = yml_file.read()
         content = content.replace("cluster.initial_cluster_manager_nodes: []",
@@ -30,6 +30,8 @@ def get_yml_file(manager_ip,node_count,configs):
                                  f"""discovery.seed_hosts: ["{manager_ip}.{configs["RegionInfo"]["RegionName"]}.compute.internal"]""")
         content = content.replace("node.max_local_storage_nodes: 1",
                                  f"""node.max_local_storage_nodes: {str(node_count)}""")
+        content = content.replace("node.roles: []",
+                                 f"""node.roles: {roles}""")
         with open(target_path, 'w') as f:
             f.write(content)
     return target_path
@@ -41,7 +43,11 @@ async def set_configs(configs):
     manager_ip = manager_ip.replace(".","-")
     node_count = sum(map(len,ids.values()))
 
-    yml_fp = get_yml_file(f"ip-{manager_ip}",node_count,configs)
+    yml_fp_dict = dict()
+    for instance_type, roles in configs["InstanceRolesMap"].items():
+        yml_fp = get_yml_file(f"ip-{manager_ip}",node_count,configs,instance_type,roles)
+        yml_fp_dict[instance_type]=yml_fp
+    print(yml_fp_dict)
 
     for instance_type, instance_ids in ids.items():
         max_mem = configs.get("max_mem",32)
@@ -52,7 +58,7 @@ async def set_configs(configs):
         print(info)
         
         commands = [f"""
-                    scp -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} {yml_fp} ubuntu@{dns}:/home/ubuntu/{configs["cluster_node_dir"]}/config/opensearch.yml
+                    scp -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} {yml_fp_dict[instance_type]} ubuntu@{dns}:/home/ubuntu/{configs["cluster_node_dir"]}/config/opensearch.yml
                     scp -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} {jvm_fp} ubuntu@{dns}:/home/ubuntu/{configs["cluster_node_dir"]}/config/jvm.options
                     """ for dns in info["PublicDnsName"]]
         await run_commands_on_dns(commands,info["PublicDnsName"])

@@ -11,6 +11,11 @@ async def start_cluster(configs):
         info = get_instances_info(instance_ids,configs)
         print(info)
         endpoints += [f"https://{dns}:9200" for dns in info["PublicDnsName"]]
+        if "init_password" in configs:
+            init_password = f"""export OPENSEARCH_INITIAL_ADMIN_PASSWORD={configs["init_password"]}"""
+        else:
+            init_password = ""
+            
         commands = [f"""
             ssh -o StrictHostKeyChecking=no -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} ubuntu@{dns} << EOF
             cd /home/ubuntu/{configs["cluster_node_dir"]}
@@ -24,6 +29,7 @@ async def start_cluster(configs):
             else
                 echo "Process not found. Continuing..."
             fi
+            {init_password}
             nohup sh opensearch-tar-install.sh > nohup.log 2>&1 &
             sleep 2
             pgrep -f opensearch
@@ -31,3 +37,4 @@ async def start_cluster(configs):
         await run_commands_on_dns(commands,info["PublicDnsName"])
             
     print(endpoints)
+    return endpoints

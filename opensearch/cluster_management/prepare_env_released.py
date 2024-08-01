@@ -3,7 +3,7 @@ import subprocess
 
 from utils import load_json,get_instances_info, run_commands_on_dns
 
-async def prepare_env(configs):
+async def prepare_env_released(configs):
     ids = load_json("ids",configs)
     client = boto3.client("ec2", region_name=configs["RegionInfo"]["RegionName"])
     
@@ -12,8 +12,8 @@ async def prepare_env(configs):
         print(info)
         commands = [f"""
             ssh -o StrictHostKeyChecking=no -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} ubuntu@{dns} << EOF
-            wget {configs["released"]["url"]}
-            tar -xzvf {configs["released"]["name"]} > /dev/null
+            wget {configs["released"]["url"]} > /dev/null
+            tar -xzf {configs["released"]["name"]}
 
             sudo swapoff -a
             echo 'vm.max_map_count=262144' | sudo tee /etc/sysctl.conf
