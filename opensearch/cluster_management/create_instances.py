@@ -20,7 +20,12 @@ def create_instances(configs):
     instance_ids = dict()
     ImageId = get_ImageId(configs)
 
-    for instance_type,instance_count in configs["InstanceMap"].items():    
+    for instance_type,instance_count in configs["InstanceMap"].items():
+        if "IamInstanceProfile" in configs:
+            IamInstanceProfile = configs["IamInstanceProfile"]
+        else:
+            IamInstanceProfile = null
+            
         instances = ec2_res.create_instances(
             BlockDeviceMappings=[
                 {
@@ -42,7 +47,7 @@ def create_instances(configs):
                     'Tags': configs["Tags"]
                 },
             ],
-            IamInstanceProfile=configs["IamInstanceProfile"]
+            IamInstanceProfile=configs.get("IamInstanceProfile", None)
         )
         instance_ids[instance_type]=[instance.id for instance in instances]
         print("allocate %d instances of type %s"%(instance_count,instance_type))
