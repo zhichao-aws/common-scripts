@@ -1,16 +1,18 @@
 import boto3
 import subprocess
 
-from utils import load_json,get_instances_info, run_commands_on_dns
+from utils import load_json, get_instances_info, run_commands_on_dns
+
 
 async def prepare_env_released(configs):
-    ids = load_json("ids",configs)
+    ids = load_json("ids", configs)
     client = boto3.client("ec2", region_name=configs["RegionInfo"]["RegionName"])
-    
+
     for instance_type, instance_ids in ids.items():
-        info = get_instances_info(instance_ids,configs)
+        info = get_instances_info(instance_ids, configs)
         print(info)
-        commands = [f"""
+        commands = [
+            f"""
             ssh -o StrictHostKeyChecking=no -i /Users/zhichaog/.ssh/{configs["RegionInfo"]["KeyName"]+".pem"} ubuntu@{dns} << EOF
             wget {configs["released"]["url"]} > /dev/null
             tar -xzf {configs["released"]["name"]}
@@ -24,5 +26,7 @@ async def prepare_env_released(configs):
             nohup sh opensearch-tar-install.sh > nohup.log 2>&1 &
             sleep 10
             pgrep -f "opensearch" | xargs kill -9
-            """ for dns in info["PublicDnsName"]]
-        await run_commands_on_dns(commands,info["PublicDnsName"])
+            """
+            for dns in info["PublicDnsName"]
+        ]
+        await run_commands_on_dns(commands, info["PublicDnsName"])
